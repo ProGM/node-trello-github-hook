@@ -1,5 +1,4 @@
 var uuid = require('node-uuid'),
-imagemagick = require('imagemagick-native'),
 process = require('process'),
 fs = require('fs'),
 bodyParser = require('body-parser');
