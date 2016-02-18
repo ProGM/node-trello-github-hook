@@ -68,8 +68,49 @@ app.post('/github_hook', function(req, res) {
         });
       }
     });
+  } else if (req.body.action == 'reopened') {
+    console.log("PROCESSING REOPENED TRIGGER");
+    var issue_name = req.body.issue.title;
+    var card_id = issue_name.match(/\[[a-zA-Z0-9]+\]/)[0].replace('[', '').replace(']', '');
+    var issue_url = req.body.issue.html_url;
+    console.log("Issue Name:", issue_name);
+    console.log("Card id:", card_id);
+
+    t.get('/1/cards/' + card_id + '/checklists', function(err, data) {
+      // Se esiste una checklist aggiungi l'elemento
+      if (data[0] != undefined) {
+        console.log('checklist exists');
+        var checklist_id = data[0].id;
+        var checkitems = data[0].checkItems;
+        console.log(data[0].checkItems)
+        var checkitem = null;
+        for (var i = 0; i < data[0].checkItems.length; i++) {
+          if (checkitems[i].name == (issue_name + " " + issue_url)) {
+            checkitem = checkitems[i].id;
+            break;
+          }
+        }
+        if (checkitem == null) {
+          res.send('Ignored');
+          return;
+        }
+        t.put('/1/cards/' + card_id + '/checklist/' + checklist_id + '/checkItem/' + checkitem, { state: 'incomplete' }, function(err, data) {
+          if (err) {
+            console.log("ERROR WHEN SETTING ITEM NOT COMPLETED");
+            console.log(err);
+            res.status(err.statusCode).send(err.body);
+          } else {
+            console.log("CHECKLIST ITEM SET TO INCOMPLETE STATUS!");
+            console.log(data);
+            res.send("OK");
+          }
+        });
+      } else {
+        res.send('Ignored');
+      }
+    });
   } else if (req.body.action == 'closed') {
-    console.log("PROCESSING OPENED TRIGGER");
+    console.log("PROCESSING CLOSED TRIGGER");
     var issue_name = req.body.issue.title;
     var card_id = issue_name.match(/\[[a-zA-Z0-9]+\]/)[0].replace('[', '').replace(']', '');
     var issue_url = req.body.issue.html_url;
