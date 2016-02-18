@@ -23,3 +23,8 @@ TRELLO_TOKEN=<your token>
 To obtain those data, please refer to the documentation of this module:
 
 https://github.com/adunkman/node-trello
+
+## TODO
+
+* Refactor
+* Improve checklist checks
