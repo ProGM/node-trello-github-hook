@@ -24,6 +24,15 @@ To obtain those data, please refer to the documentation of this module:
 
 https://github.com/adunkman/node-trello
 
+## Intelligent Bookmarks
+Save this bookmark to open a new issue related to a trello card.
+
+To make it work, simply go to you trello board, open the card you want to refer and click the bookmark. A new issue page will be opened for you.
+
+```javascript
+javascript:window.open(encodeURI("https://github.com/YOUR_NAME/YOUR_REPO/issues/new?title=[" + window.location.href.split("/")[4] +  "]&body=\n\n\n----\nRefers to " + window.location.href))
+```
+
 ## TODO
 
 * Refactor
