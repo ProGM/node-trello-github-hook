@@ -15,6 +15,33 @@ if ( app.get('env') === 'development' ) {
 var Trello = require("node-trello");
 var t = new Trello(process.env.TRELLO_KEY, process.env.TRELLO_TOKEN);
 
+function findChecklistItem(card_id, checklist_name, onSuccess, onFailure) {
+  t.get('/1/cards/' + card_id + '/checklists', function(err, data) {
+    // Se esiste una checklist aggiungi l'elemento
+    if (data && data.length > 0) {
+      console.log('checklist exists');
+      for (var k = 0; k < data.length; k++) {
+        var checklist_id = data[k].id;
+        var checkitems = data[k].checkItems;
+        console.log(data[k].checkItems)
+        var checkitem = null;
+        for (var i = 0; i < data[k].checkItems.length; i++) {
+          if (checkitems[i].name == checklist_name) {
+            checkitem = checkitems[i].id;
+            break;
+          }
+        }
+        if (checkitem == null) {
+          continue;
+        }
+        onSuccess();
+        return;
+      }
+    }
+    onFailure();
+  });
+}
+
 app.post('/github_hook', function(req, res) {
 
   if (req.body.action == 'opened') {
@@ -76,24 +103,9 @@ app.post('/github_hook', function(req, res) {
     console.log("Issue Name:", issue_name);
     console.log("Card id:", card_id);
 
-    t.get('/1/cards/' + card_id + '/checklists', function(err, data) {
-      // Se esiste una checklist aggiungi l'elemento
-      if (data[0] != undefined) {
-        console.log('checklist exists');
-        var checklist_id = data[0].id;
-        var checkitems = data[0].checkItems;
-        console.log(data[0].checkItems)
-        var checkitem = null;
-        for (var i = 0; i < data[0].checkItems.length; i++) {
-          if (checkitems[i].name == (issue_name + " " + issue_url)) {
-            checkitem = checkitems[i].id;
-            break;
-          }
-        }
-        if (checkitem == null) {
-          res.send('Ignored');
-          return;
-        }
+    findChecklistItem(card_id, issue_name + " " + issue_url,
+      // Success
+      function(checklist_id, checkitem) {
         t.put('/1/cards/' + card_id + '/checklist/' + checklist_id + '/checkItem/' + checkitem, { state: 'incomplete' }, function(err, data) {
           if (err) {
             console.log("ERROR WHEN SETTING ITEM NOT COMPLETED");
@@ -105,10 +117,11 @@ app.post('/github_hook', function(req, res) {
             res.send("OK");
           }
         });
-      } else {
+      },
+      // Failure
+      function() {
         res.send('Ignored');
-      }
-    });
+      })
   } else if (req.body.action == 'closed') {
     console.log("PROCESSING CLOSED TRIGGER");
     var issue_name = req.body.issue.title;
@@ -116,25 +129,9 @@ app.post('/github_hook', function(req, res) {
     var issue_url = req.body.issue.html_url;
     console.log("Issue Name:", issue_name);
     console.log("Card id:", card_id);
-
-    t.get('/1/cards/' + card_id + '/checklists', function(err, data) {
-      // Se esiste una checklist aggiungi l'elemento
-      if (data[0] != undefined) {
-        console.log('checklist exists');
-        var checklist_id = data[0].id;
-        var checkitems = data[0].checkItems;
-        console.log(data[0].checkItems)
-        var checkitem = null;
-        for (var i = 0; i < data[0].checkItems.length; i++) {
-          if (checkitems[i].name == (issue_name + " " + issue_url)) {
-            checkitem = checkitems[i].id;
-            break;
-          }
-        }
-        if (checkitem == null) {
-          res.send('Ignored');
-          return;
-        }
+    findChecklistItem(card_id, issue_name + " " + issue_url,
+      // Success
+      function(checklist_id, checkitem) {
         t.put('/1/cards/' + card_id + '/checklist/' + checklist_id + '/checkItem/' + checkitem, { state: 'complete' }, function(err, data) {
           if (err) {
             console.log("ERROR WHEN SETTING ITEM COMPLETED");
@@ -146,10 +143,11 @@ app.post('/github_hook', function(req, res) {
             res.send("OK");
           }
         });
-      } else {
+      },
+      // Failure
+      function() {
         res.send('Ignored');
-      }
-    });
+      })
   } else {
     res.send('Ignored');
   }
