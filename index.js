@@ -34,7 +34,7 @@ function findChecklistItem(card_id, checklist_name, onSuccess, onFailure) {
         if (checkitem == null) {
           continue;
         }
-        onSuccess();
+        onSuccess(checklist_id, checkitem);
         return;
       }
     }
